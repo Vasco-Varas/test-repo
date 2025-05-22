@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Zoonosis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Fuente Inter para una mejor legibilidad */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f9ff; /* Azul claro de fondo */
+        }
+        /* Estilos personalizados para los botones de respuesta */
+        .answer-button {
+            @apply bg-blue-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-600 transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75;
+            border: 2px solid #3b82f6; /* Borde azul */
+        }
+        .answer-button.correct {
+            @apply bg-green-500 hover:bg-green-600 border-green-700;
+        }
+        .answer-button.incorrect {
+            @apply bg-red-500 hover:bg-red-600 border-red-700;
+        }
+        /* Estilos para el botón de siguiente/reiniciar */
+        .action-button {
+            @apply bg-purple-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg hover:bg-purple-700 transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75;
+        }
+        /* Estilos para el contenedor de feedback */
+        .feedback-box {
+            @apply p-4 mt-4 rounded-lg shadow-inner;
+        }
+        .feedback-correct {
+            @apply bg-green-100 text-green-800 border border-green-300;
+        }
+        .feedback-incorrect {
+            @apply bg-red-100 text-red-800 border border-red-300;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-2xl w-full border-t-8 border-blue-500">
+        <h1 class="text-4xl font-extrabold text-center text-gray-800 mb-6">¡Aprende de Zoonosis Jugando!</h1>
+        <p class="text-center text-gray-600 mb-8 text-lg">Pon a prueba tus conocimientos sobre las enfermedades que se transmiten entre animales y humanos.</p>
+
+        <div id="start-screen" class="text-center">
+            <button id="start-game-button" class="action-button">Comenzar Juego</button>
+        </div>
+
+        <div id="game-screen" class="hidden">
+            <div class="text-right text-lg font-bold text-gray-700 mb-4">
+                Puntuación: <span id="score">0</span>
+            </div>
+
+            <div class="bg-blue-50 p-6 rounded-xl shadow-inner mb-6">
+                <p id="question-text" class="text-xl font-semibold text-gray-900 mb-4"></p>
+                <div id="answer-buttons" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    </div>
+            </div>
+
+            <div id="feedback-area" class="hidden">
+                <div id="feedback-box" class="feedback-box">
+                    <p id="feedback-text" class="font-medium"></p>
+                </div>
+                <button id="next-question-button" class="action-button w-full mt-6 hidden">Siguiente Pregunta</button>
+            </div>
+        </div>
+
+        <div id="end-screen" class="hidden text-center">
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">¡Juego Terminado!</h2>
+            <p class="text-xl text-gray-700 mb-6">Tu puntuación final es: <span id="final-score" class="font-extrabold text-blue-600"></span></p>
+            <button id="restart-game-button" class="action-button">Jugar de Nuevo</button>
+        </div>
+    </div>
+
+    <script>
+        // Array de objetos que contiene las preguntas y respuestas del juego
+        const questions = [
+            {
+                question: "¿Qué son las enfermedades antropozoonóticas o zoonosis?",
+                options: [
+                    "Enfermedades que solo afectan a los animales.",
+                    "Enfermedades que solo afectan a los seres humanos.",
+                    "Enfermedades infecciosas que se transmiten de animales vertebrados a seres humanos (y viceversa).",
+                    "Enfermedades causadas únicamente por virus."
+                ],
+                correctAnswerIndex: 2,
+                explanation: "Las enfermedades antropozoonóticas o zoonosis son efectivamente infecciones que se transmiten entre animales vertebrados y seres humanos."
+            },
+            {
+                question: "¿Cuál de las siguientes NO es una vía principal de transmisión de las zoonosis?",
+                options: [
+                    "Contacto directo con un animal infectado.",
+                    "Transmisión por ondas de radio.",
+                    "Consumo de alimentos contaminados.",
+                    "Transmisión a través de vectores como mosquitos."
+                ],
+                correctAnswerIndex: 1,
+                explanation: "La transmisión por ondas de radio no es una vía conocida para la transmisión de zoonosis. Las otras opciones son rutas comunes de contagio."
+            },
+            {
+                question: "Si un murciélago muerde a una persona, ¿qué enfermedad zoonótica viral podría transmitir?",
+                options: [
+                    "Salmonelosis",
+                    "Rabia",
+                    "Toxoplasmosis",
+                    "Leptospirosis"
+                ],
+                correctAnswerIndex: 1,
+                explanation: "La rabia es una enfermedad viral grave transmitida principalmente por la mordedura de animales infectados como los murciélagos."
+            },
+            {
+                question: "¿Qué zoonosis bacteriana está comúnmente asociada con el consumo de huevos o aves de corral poco cocidas?",
+                options: [
+                    "Brucelosis",
+                    "Leptospirosis",
+                    "Salmonelosis",
+                    "Tiña"
+                ],
+                correctAnswerIndex: 2,
+                explanation: "La Salmonelosis es una zoonosis bacteriana que a menudo se contrae por el consumo de alimentos contaminados, incluyendo huevos y aves de corral mal cocidas."
+            },
+            {
+                question: "¿Cuál es el parásito que se relaciona con las heces de gatos infectados y la carne poco cocida, y es especialmente peligroso para mujeres embarazadas?",
+                options: [
+                    "Echinococcus",
+                    "Trichinella",
+                    "Toxoplasma gondii",
+                    "Campylobacter"
+                ],
+                correctAnswerIndex: 2,
+                explanation: "El parásito Toxoplasma gondii causa la toxoplasmosis y puede ser muy peligroso durante el embarazo."
+            },
+            {
+                question: "¿Qué enfoque integral y colaborativo reconoce que la salud de las personas está interconectada con la salud de los animales y el medio ambiente?",
+                options: [
+                    "Salud Pública Aislada",
+                    "Una Salud (One Health)",
+                    "Salud Animal Exclusiva",
+                    "Medicina Humana Únicamente"
+                ],
+                correctAnswerIndex: 1,
+                explanation: "El concepto 'Una Salud' (One Health) es fundamental para abordar las zoonosis de manera efectiva, ya que entiende la conexión entre todas las formas de vida y su entorno."
+            },
+            {
+                question: "¿Cuál de las siguientes NO es una medida de prevención clave contra las zoonosis?",
+                options: [
+                    "Lavarse las manos frecuentemente.",
+                    "Consumir solo productos lácteos no pasteurizados.",
+                    "Vacunar y desparasitar a las mascotas.",
+                    "Cocinar completamente la carne y los huevos."
+                ],
+                correctAnswerIndex: 1,
+                explanation: "Consumir productos lácteos no pasteurizados es un riesgo, no una medida de prevención. Al contrario, se recomienda consumir solo productos pasteurizados."
+            }
+        ];
+
+        // Referencias a elementos del DOM
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        const startGameButton = document.getElementById('start-game-button');
+        const questionText = document.getElementById('question-text');
+        const answerButtonsContainer = document.getElementById('answer-buttons');
+        const feedbackArea = document.getElementById('feedback-area');
+        const feedbackBox = document.getElementById('feedback-box');
+        const feedbackText = document.getElementById('feedback-text');
+        const nextQuestionButton = document.getElementById('next-question-button');
+        const scoreDisplay = document.getElementById('score');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const restartGameButton = document.getElementById('restart-game-button');
+
+        // Variables de estado del juego
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let shuffledQuestions = []; // Para almacenar las preguntas en orden aleatorio
+
+        // Función para mezclar el array de preguntas (Fisher-Yates shuffle)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]]; // Intercambiar elementos
+            }
+            return array;
+        }
+
+        // Inicia el juego
+        function startGame() {
+            startScreen.classList.add('hidden'); // Oculta la pantalla de inicio
+            gameScreen.classList.remove('hidden'); // Muestra la pantalla del juego
+            endScreen.classList.add('hidden'); // Asegura que la pantalla final esté oculta
+
+            currentQuestionIndex = 0;
+            score = 0;
+            scoreDisplay.textContent = score;
+            shuffledQuestions = shuffleArray([...questions]); // Mezcla las preguntas al inicio de cada juego
+            displayQuestion(); // Muestra la primera pregunta
+        }
+
+        // Muestra la pregunta actual y sus opciones
+        function displayQuestion() {
+            // Oculta el área de feedback y el botón de siguiente pregunta
+            feedbackArea.classList.add('hidden');
+            nextQuestionButton.classList.add('hidden');
+
+            // Limpia los botones de respuesta anteriores
+            answerButtonsContainer.innerHTML = '';
+
+            // Obtiene la pregunta actual del array mezclado
+            const currentQuestion = shuffledQuestions[currentQuestionIndex];
+            questionText.textContent = currentQuestion.question; // Establece el texto de la pregunta
+
+            // Crea los botones para cada opción de respuesta
+            currentQuestion.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('answer-button'); // Añade clases de estilo
+                button.dataset.index = index; // Almacena el índice de la opción
+                button.addEventListener('click', () => checkAnswer(index)); // Añade el evento click
+                answerButtonsContainer.appendChild(button); // Añade el botón al contenedor
+            });
+        }
+
+        // Verifica la respuesta seleccionada por el usuario
+        function checkAnswer(selectedIndex) {
+            const currentQuestion = shuffledQuestions[currentQuestionIndex];
+            const isCorrect = selectedIndex === currentQuestion.correctAnswerIndex;
+
+            // Deshabilita todos los botones de respuesta para evitar múltiples clics
+            Array.from(answerButtonsContainer.children).forEach(button => {
+                button.disabled = true;
+                const buttonIndex = parseInt(button.dataset.index);
+                // Resalta la respuesta correcta y la incorrecta seleccionada
+                if (buttonIndex === currentQuestion.correctAnswerIndex) {
+                    button.classList.add('correct');
+                } else if (buttonIndex === selectedIndex && !isCorrect) {
+                    button.classList.add('incorrect');
+                }
+            });
+
+            // Muestra el feedback al usuario
+            feedbackArea.classList.remove('hidden');
+            feedbackBox.classList.remove('feedback-correct', 'feedback-incorrect'); // Limpia clases anteriores
+
+            if (isCorrect) {
+                score++; // Incrementa la puntuación si es correcto
+                scoreDisplay.textContent = score; // Actualiza la puntuación en la pantalla
+                feedbackBox.classList.add('feedback-correct');
+                feedbackText.textContent = `¡Correcto! ${currentQuestion.explanation}`;
+            } else {
+                feedbackBox.classList.add('feedback-incorrect');
+                feedbackText.textContent = `¡Incorrecto! La respuesta correcta era: "${currentQuestion.options[currentQuestion.correctAnswerIndex]}". ${currentQuestion.explanation}`;
+            }
+
+            // Muestra el botón para ir a la siguiente pregunta
+            nextQuestionButton.classList.remove('hidden');
+        }
+
+        // Pasa a la siguiente pregunta o termina el juego
+        function nextQuestion() {
+            currentQuestionIndex++; // Incrementa el índice de la pregunta actual
+            if (currentQuestionIndex < shuffledQuestions.length) {
+                displayQuestion(); // Si hay más preguntas, muestra la siguiente
+            } else {
+                endGame(); // Si no hay más preguntas, termina el juego
+            }
+        }
+
+        // Termina el juego y muestra la puntuación final
+        function endGame() {
+            gameScreen.classList.add('hidden'); // Oculta la pantalla del juego
+            endScreen.classList.remove('hidden'); // Muestra la pantalla final
+            finalScoreDisplay.textContent = `${score} de ${shuffledQuestions.length}`; // Muestra la puntuación final
+        }
+
+        // Event Listeners
+        startGameButton.addEventListener('click', startGame);
+        nextQuestionButton.addEventListener('click', nextQuestion);
+        restartGameButton.addEventListener('click', startGame); // El botón de reiniciar llama a startGame
+    </script>
+</body>
+</html>
